@@ -18,3 +18,23 @@ if __name__ == '__main__':
         expPorAno[1][c] = float(i)
         c += 1
     print(expPorAno)
+    with open('paro.tsv', 'r') as myfile:
+        paro = myfile.read()
+    paro = paro.split('\n')
+    paromatriz = [1] * (len(paro))
+    i = 0
+    for p in paro:
+        paromatriz[i] = p.split('\t')
+        i+=1
+    justData = []
+    for p in paromatriz:
+        if (len(p) > 1):
+            if(p[2] == 'Dato' and p[0] == 'Canarias'):
+                justData.append(p)
+    for a in expPorAno[0]:
+        for data in justData:
+            if(str(a) == data[1][0:4]):
+                expPorAno[2][expPorAno[0].index(a)] += int(data[3])
+    for a in expPorAno[2]:
+        a = a/12
+    print(expPorAno)
