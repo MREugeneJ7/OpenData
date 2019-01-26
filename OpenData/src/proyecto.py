@@ -1,3 +1,11 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import copy
+from scipy import stats
+
+
 '''
 Created on 22 ene. 2019
 
@@ -49,6 +57,143 @@ if __name__ == '__main__':
     comparative[0] = expPorAno[0]
     comparative[1] = ['']*6
     for i in range(0,6):
-        comparative[1][i] = expPorAno[2][i]/expPorAno[1][i]
+        comparative[1][i] = expPorAno[1][i]/expPorAno[2][i]
     
     print(comparative)
+    
+    # data
+    df=pd.DataFrame({'Año': expPorAno[0][0::], 'Exportaciones totales': expPorAno[1][0::], 'Parados medios por mes': expPorAno[2][0::] })
+ 
+    # style
+    plt.style.use('seaborn-darkgrid')
+ 
+    # create a color palette
+    palette = plt.get_cmap('Set1')
+     
+    # multiple line plot
+    plt.subplot(321)
+
+    num=0
+    for column in df.drop('Año', axis=1):
+        num+=1
+        plt.plot(df['Año'], df[column], marker='', color=palette(num), linewidth=1, alpha=0.9, label=column)
+     
+    # Add legend
+    plt.legend(loc=2, ncol=2)
+    plt.title("Grafico", loc='left', fontsize=12, fontweight=0, color='orange')
+    plt.xlabel("Años")
+    plt.ylabel("Cantidad")
+     
+    
+    #Normalizado
+    expPorAnoNor = copy.deepcopy(expPorAno)
+    acumParo = 0
+    acumExp = 0
+    for i in range(0,6):
+        acumExp += expPorAno[1][i]
+        acumParo += expPorAno[2][i]
+    for i in range(0,6):
+        expPorAnoNor[1][i] = expPorAno[1][i]/acumExp
+        expPorAnoNor[2][i] = expPorAno[2][i]/acumParo
+        
+    df1=pd.DataFrame({'Año': expPorAnoNor[0][0::], 'Exportaciones totales': expPorAnoNor[1][0::], 'Parados medios por mes': expPorAnoNor[2][0::] })
+    plt.subplot(322)
+
+    num=0
+    for column in df1.drop('Año', axis=1):
+        num+=1
+        plt.plot(df1['Año'], df1[column], marker='', color=palette(num), linewidth=1, alpha=0.9, label=column)
+     
+    # Add legend
+    plt.legend(loc=2, ncol=2)
+    
+    # Add titles
+    plt.title("Grafico Normalizado", loc='left', fontsize=12, fontweight=0, color='orange')
+    plt.xlabel("Años")
+    plt.ylabel("Cantidad")
+    
+    df2=pd.DataFrame({'Año': comparative[0][0::], 'Exportaciones/Paro': comparative[1][0::] })
+    plt.subplot(323)
+
+    num=0
+    for column in df2.drop('Año', axis=1):
+        num+=1
+        plt.plot(df2['Año'], df2[column], marker='', color=palette(num), linewidth=1, alpha=0.9, label=column)
+     
+    # Add legend
+    plt.legend(loc=2, ncol=2)
+    
+    # Add titles
+    plt.title("Grafico Comparativo", loc='left', fontsize=12, fontweight=0, color='orange')
+    plt.xlabel("Años")
+    plt.ylabel("Cantidad")
+    df3=pd.DataFrame({'Paro': expPorAno[2][0::], 'Exportaciones': expPorAno[1][0::] })
+    plt.subplot(324)
+
+    num=0
+    for column in df3.drop('Paro', axis=1):
+        num+=1
+        plt.plot(df3['Paro'], df3[column], marker='.', color=palette(num), linewidth=0, alpha=0.9, label=column)
+     
+    # Add legend
+    plt.legend(loc=2, ncol=2)
+    
+    # Add titles
+    plt.title("Grafico Comparativo", loc='left', fontsize=12, fontweight=0, color='orange')
+    plt.xlabel("Paro")
+    plt.ylabel("Exportaciones")
+    
+    
+    #Pearson
+    mediaParo = np.average(expPorAno[2])
+    mediaExp = np.average(expPorAno[1])
+    covarianza = 0
+    expPorAnoPearson = copy.deepcopy(expPorAno)
+    expPorAnoPearson.append([])
+    for i in range(0,6):
+        expPorAnoPearson[1][i] = expPorAno[1][i] - mediaExp
+        expPorAnoPearson[2][i] = expPorAno[2][i] - mediaParo
+        expPorAnoPearson[3].append(expPorAnoPearson[1][i] * expPorAnoPearson[2][i])
+        covarianza += expPorAnoPearson[3][i]
+    covarianza /= 5
+    tDP = np.std(expPorAno[2])
+    tDE = np.std(expPorAno[1])
+    correlacion = covarianza/(tDE*tDP)
+    print(correlacion)
+    print(correlacion**2*100)
+    
+    
+    #Student test
+    
+    print (stats.t.ppf(0.05,4))
+    
+    t2, p2 = stats.ttest_ind(expPorAno[2],expPorAno[1])
+    s ="t = " + str(t2)
+    s += " p = " + str(2*p2)
+    
+    limInf = correlacion +(-stats.t.ppf(0.05,4)*np.sqrt((1-correlacion**2)/4))
+    limSup = correlacion +(stats.t.ppf(0.05,4)*np.sqrt((1-correlacion**2)/4))
+    
+    s += "\n [" + str(limSup) + "," + str(limInf) + "]"
+    
+    plt.subplot(325)
+     
+    # Add legend
+    df4 = pd.DataFrame({'group':["t"], 'values': [t2]})
+    plt.stem(df4['values'])
+    
+    # Add titles
+    plt.title("T valor", loc='left', fontsize=12, fontweight=0, color='orange')
+    
+    plt.subplot(326)
+     
+    # Add legend
+    df5 = pd.DataFrame({'group':["p","limInf","limSup"], 'values': [p2, limInf, limSup]})
+    plt.stem(df5['values'])
+    
+    # Add titles
+    plt.title("P -Valor y limites", loc='left', fontsize=12, fontweight=0, color='orange')
+    
+    plt.show()
+    
+    
